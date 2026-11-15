@@ -1,0 +1,25 @@
+# Credenciales de Azure
+.env
+.env.*
+!.env.example
+
+# Entornos virtuales
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales
+*.log
+download
+download (*)
+
+# Configuracion de VS Code
+.vscode/
