@@ -72,6 +72,8 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
     # por la llamada real que guarda en la base de datos.
     
     import requests
+    import os
+
 
     try:
         respuesta = requests.post(
@@ -81,6 +83,9 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
                 "tipo": tipo,
                 "riesgo": riesgo,
                 "infraccion": infraccion
+            },
+            headers={
+                "X-API-Key": os.environ["BACKEND_API_KEY"]
             },
             timeout=10
         )
