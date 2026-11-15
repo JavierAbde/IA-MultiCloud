@@ -70,8 +70,32 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
     # TEMPORAL: esta funcion solo imprime en la terminal.
     # Cuando el Integrante 2 tenga lista la API, aqui se reemplaza
     # por la llamada real que guarda en la base de datos.
-    print(f"[REGISTRO SIMULADO] {id_evento} | {tipo} | {riesgo} | {infraccion}")
-    return {"estado": "ok", "registrado": True, "id": id_evento}
+    
+    import requests
+
+    try:
+        respuesta = requests.post(
+            "http://127.0.0.1:8000/eventos",
+            json={
+                "id": id_evento,
+                "tipo": tipo,
+                "riesgo": riesgo,
+                "infraccion": infraccion
+            },
+            timeout=10
+        )
+
+        respuesta.raise_for_status()
+        return respuesta.json()
+
+    except requests.RequestException as error:
+        return {
+            "estado": "error",
+            "registrado": False,
+            "id": id_evento,
+            "detalle": str(error)
+        }
+
 
 
 agente_registro = Agent(
