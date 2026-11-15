@@ -30,3 +30,24 @@ def test_error_base_datos():
 
     assert respuesta.status_code == 500
     assert respuesta.json()["detail"] == "No se pudo guardar el evento"
+
+
+def test_advertencia_operacion_lenta(caplog):
+    evento = {
+        "id": "EV-LENTO",
+        "tipo": "VELOCIDAD",
+        "riesgo": "alto",
+        "infraccion": "Prueba de lentitud"
+    }
+
+    with patch("backend.main.time") as reloj_simulado:
+        reloj_simulado.perf_counter.side_effect = [100.0, 100.2]
+
+        respuesta = client.post(
+            "/eventos",
+            json=evento,
+            headers={"X-API-Key": API_KEY}
+        )
+
+    assert respuesta.status_code == 200
+    assert "superó el umbral de 100 ms" in caplog.text

@@ -9,7 +9,7 @@ import secrets
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import Header, HTTPException, Depends
-
+import time
 from .logger import logger
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -51,6 +51,7 @@ def inicio():
 
 @app.post("/eventos", dependencies=[Depends(verificar_api_key)])
 def registrar_evento(evento: Evento):
+    inicio = time.perf_counter()
     logger.info(f"Solicitud de registro recibida: {evento.id}")
 
     try:
@@ -71,10 +72,15 @@ def registrar_evento(evento: Evento):
             conexion.commit()
 
         logger.info(f"Evento {evento.id} guardado correctamente")
-
+        duracion_ms = (time.perf_counter() - inicio) * 1000
+        logger.info(f"Evento {evento.id} procesado en {duracion_ms:.2f} ms")
+        if duracion_ms > 100:
+            logger.warning(
+                f"Evento {evento.id} superó el umbral de 100 ms: {duracion_ms:.2f} ms"
+            )
         return {
-            "estado": "ok",
-            "registrado": True,
+            "estado": "ok", 
+            "registrado": True,     
             "id": evento.id
         }
 
