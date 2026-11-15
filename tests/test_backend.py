@@ -51,3 +51,23 @@ def test_advertencia_operacion_lenta(caplog):
 
     assert respuesta.status_code == 200
     assert "superó el umbral de 100 ms" in caplog.text
+
+import requests
+from monitoreo_vial.agent import guardar_evento
+
+
+def test_timeout_api():
+    with patch(
+        "monitoreo_vial.agent.requests.post",
+        side_effect=requests.Timeout("Tiempo agotado")
+    ):
+        resultado = guardar_evento(
+            id_evento="EV-TIMEOUT",
+            tipo="CASCO",
+            riesgo="alto",
+            infraccion="Motociclista sin casco"
+        )
+
+    assert resultado["estado"] == "error"
+    assert resultado["registrado"] is False
+    assert "Timeout" in resultado["detalle"]

@@ -1,3 +1,5 @@
+import requests
+import os
 from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.agent_tool import AgentTool
@@ -71,8 +73,7 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
     # Cuando el Integrante 2 tenga lista la API, aqui se reemplaza
     # por la llamada real que guarda en la base de datos.
     
-    import requests
-    import os
+
 
 
     try:
@@ -92,7 +93,13 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
 
         respuesta.raise_for_status()
         return respuesta.json()
-
+    except requests.Timeout:
+        return {
+            "estado": "error",
+            "registrado": False,
+            "id": id_evento,
+            "detalle": "Timeout: la API no respondió dentro de 10 segundos"
+        }
     except requests.RequestException as error:
         return {
             "estado": "error",
