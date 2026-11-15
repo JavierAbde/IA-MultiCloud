@@ -10,6 +10,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import Header, HTTPException, Depends
 
+from .logger import logger
+
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 API_KEY = os.getenv("BACKEND_API_KEY")
@@ -46,29 +48,45 @@ def inicio():
     }
 
 
+
 @app.post("/eventos", dependencies=[Depends(verificar_api_key)])
 def registrar_evento(evento: Evento):
-    with sqlite3.connect(DB_PATH) as conexion:
-        conexion.execute(
-            """
-            INSERT OR REPLACE INTO eventos
-            (id, tipo, riesgo, infraccion)
-            VALUES (?, ?, ?, ?)
-            """,
-            (
-                evento.id,
-                evento.tipo,
-                evento.riesgo,
-                evento.infraccion
-            )
-        )
-        conexion.commit()
+    logger.info(f"Solicitud de registro recibida: {evento.id}")
 
-    return {
-        "estado": "ok",
-        "registrado": True,
-        "id": evento.id
-    }
+    try:
+        with sqlite3.connect(DB_PATH) as conexion:
+            conexion.execute(
+                """
+                INSERT OR REPLACE INTO eventos
+                (id, tipo, riesgo, infraccion)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    evento.id,
+                    evento.tipo,
+                    evento.riesgo,
+                    evento.infraccion
+                )
+            )
+            conexion.commit()
+
+        logger.info(f"Evento {evento.id} guardado correctamente")
+
+        return {
+            "estado": "ok",
+            "registrado": True,
+            "id": evento.id
+        }
+
+    except sqlite3.Error:
+        logger.exception(
+            f"Error de base de datos al guardar el evento {evento.id}"
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo guardar el evento"
+        )
+
 
 @app.get("/eventos")
 def listar_eventos():
