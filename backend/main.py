@@ -1,6 +1,7 @@
 
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Literal
 from .database import inicializar_db
 import sqlite3
 from .database import DB_PATH
@@ -31,10 +32,13 @@ app = FastAPI(title="API Monitoreo Vial")
 
 
 class Evento(BaseModel):
-    id: str
-    tipo: str
-    riesgo: str
-    infraccion: str
+    id: str = Field(min_length=1, max_length=50)
+    tipo: Literal[
+        "CASCO", "CELULAR", "VEREDA",
+        "VELOCIDAD", "NINGUNO", "INDETERMINADO"
+    ]
+    riesgo: Literal["bajo", "medio", "alto", "sin_riesgo"]
+    infraccion: str = Field(min_length=1, max_length=500)
 
 
 inicializar_db()
@@ -58,7 +62,7 @@ def registrar_evento(evento: Evento):
         with sqlite3.connect(DB_PATH) as conexion:
             conexion.execute(
                 """
-                INSERT OR REPLACE INTO eventos
+                INSERT INTO eventos
                 (id, tipo, riesgo, infraccion)
                 VALUES (?, ?, ?, ?)
                 """,
@@ -83,7 +87,14 @@ def registrar_evento(evento: Evento):
             "registrado": True,     
             "id": evento.id
         }
-
+    except sqlite3.IntegrityError:
+        logger.warning(
+            f"Intento de registrar evento duplicado: {evento.id}"
+        )
+        raise HTTPException(
+            status_code=409,
+            detail=f"El evento {evento.id} ya existe"
+        )
     except sqlite3.Error:
         logger.exception(
             f"Error de base de datos al guardar el evento {evento.id}"
