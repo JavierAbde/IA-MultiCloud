@@ -32,7 +32,14 @@ def test_error_base_datos():
     assert respuesta.json()["detail"] == "No se pudo guardar el evento"
 
 
-def test_advertencia_operacion_lenta(caplog):
+def test_advertencia_operacion_lenta(caplog, tmp_path):
+    from backend.database import inicializar_db
+
+    db_temporal = tmp_path / "eventos_test.db"
+
+    with patch("backend.database.DB_PATH", db_temporal):
+        inicializar_db()
+
     evento = {
         "id": "EV-LENTO",
         "tipo": "VELOCIDAD",
@@ -40,14 +47,15 @@ def test_advertencia_operacion_lenta(caplog):
         "infraccion": "Prueba de lentitud"
     }
 
-    with patch("backend.main.time") as reloj_simulado:
-        reloj_simulado.perf_counter.side_effect = [100.0, 100.2]
+    with patch("backend.main.DB_PATH", db_temporal):
+        with patch("backend.main.time") as reloj_simulado:
+            reloj_simulado.perf_counter.side_effect = [100.0, 100.2]
 
-        respuesta = client.post(
-            "/eventos",
-            json=evento,
-            headers={"X-API-Key": API_KEY}
-        )
+            respuesta = client.post(
+                "/eventos",
+                json=evento,
+                headers={"X-API-Key": API_KEY}
+            )
 
     assert respuesta.status_code == 200
     assert "superó el umbral de 100 ms" in caplog.text
