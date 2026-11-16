@@ -100,6 +100,21 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
             "id": id_evento,
             "detalle": "Timeout: la API no respondió dentro de 10 segundos"
         }
+    except requests.HTTPError as error:
+        codigo = error.response.status_code if error.response is not None else 500
+
+        return {
+            "estado": "error",
+            "registrado": False,
+            "id": id_evento,
+            "codigo_http": codigo,
+            "detalle": {
+                401: "No autorizado: API Key inválida",
+                409: "El evento ya existe en la base de datos",
+                422: "Los datos del evento no son válidos",
+                500: "Error interno del backend"
+            }.get(codigo, f"Error HTTP {codigo}")
+        }
     except requests.RequestException as error:
         return {
             "estado": "error",

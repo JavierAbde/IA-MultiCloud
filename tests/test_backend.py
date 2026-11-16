@@ -143,3 +143,27 @@ def test_datos_invalidos():
 
     errores = respuesta.json()["detail"]
     assert len(errores) >= 2
+from unittest.mock import Mock
+
+
+def test_agente_detecta_duplicado():
+    respuesta_simulada = Mock()
+    respuesta_simulada.status_code = 409
+    respuesta_simulada.raise_for_status.side_effect = requests.HTTPError(
+        response=respuesta_simulada
+    )
+
+    with patch(
+        "monitoreo_vial.agent.requests.post",
+        return_value=respuesta_simulada
+    ):
+        resultado = guardar_evento(
+            id_evento="EV-009",
+            tipo="VELOCIDAD",
+            riesgo="alto",
+            infraccion="Evento duplicado"
+        )
+
+    assert resultado["estado"] == "error"
+    assert resultado["registrado"] is False
+    assert resultado["codigo_http"] == 409
