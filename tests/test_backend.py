@@ -79,3 +79,67 @@ def test_timeout_api():
     assert resultado["estado"] == "error"
     assert resultado["registrado"] is False
     assert "Timeout" in resultado["detalle"]
+def test_registro_sin_api_key():
+    evento = {
+        "id": "EV-SEGURIDAD",
+        "tipo": "CASCO",
+        "riesgo": "alto",
+        "infraccion": "Prueba de acceso sin autorización"
+    }
+
+    respuesta = client.post(
+        "/eventos",
+        json=evento
+    )
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()["detail"] == "API Key inválida o ausente"
+def test_evento_duplicado(tmp_path):
+    from backend.database import inicializar_db
+
+    db_temporal = tmp_path / "duplicados.db"
+
+    with patch("backend.database.DB_PATH", db_temporal):
+        inicializar_db()
+
+    evento = {
+        "id": "EV-DUPLICADO",
+        "tipo": "CASCO",
+        "riesgo": "alto",
+        "infraccion": "Motociclista sin casco"
+    }
+
+    with patch("backend.main.DB_PATH", db_temporal):
+        primera = client.post(
+            "/eventos",
+            json=evento,
+            headers={"X-API-Key": API_KEY}
+        )
+
+        segunda = client.post(
+            "/eventos",
+            json=evento,
+            headers={"X-API-Key": API_KEY}
+        )
+
+    assert primera.status_code == 200
+    assert segunda.status_code == 409
+    assert segunda.json()["detail"] == "El evento EV-DUPLICADO ya existe"
+def test_datos_invalidos():
+    evento = {
+        "id": "EV-INVALIDO",
+        "tipo": "PIZZA",
+        "riesgo": "gigante",
+        "infraccion": "Prueba de validación"
+    }
+
+    respuesta = client.post(
+        "/eventos",
+        json=evento,
+        headers={"X-API-Key": API_KEY}
+    )
+
+    assert respuesta.status_code == 422
+
+    errores = respuesta.json()["detail"]
+    assert len(errores) >= 2
