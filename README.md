@@ -1,11 +1,13 @@
+
 # IA MultiCloud – Sistema de Monitoreo Vial
 
-Proyecto universitario de IA Cloud que utiliza un sistema multiagente para analizar eventos de tránsito en Chile y registrar sus resultados en una base de datos.
+Proyecto universitario de IA Cloud que utiliza un sistema multiagente para analizar eventos de tránsito en Chile, consultar bases de conocimiento y registrar sus resultados en una base de datos.
 
 ## Tecnologías utilizadas
 
 - **Azure AI Foundry:** acceso al modelo de inteligencia artificial.
-- **Google ADK:** coordinación de los agentes.
+- **Azure AI Search:** búsqueda de normativa chilena y criterios de riesgo.
+- **Google ADK:** coordinación y ejecución de los agentes.
 - **FastAPI:** API para registrar y consultar eventos.
 - **SQLite:** almacenamiento local de eventos.
 - **Pytest:** pruebas automáticas.
@@ -13,21 +15,28 @@ Proyecto universitario de IA Cloud que utiliza un sistema multiagente para anali
 
 ## Arquitectura
 
-El sistema contiene cinco agentes distribuidos en tres niveles:
+El sistema utiliza cinco agentes:
 
-1. `orquestador`: coordina las operaciones.
-2. `agente_analisis`: organiza la clasificación y verificación de infracciones.
-3. `agente_registro`: comunica los resultados al backend.
-4. `clasificador_riesgo`: identifica el tipo de evento y su riesgo.
-5. `verificador_normativo`: analiza la normativa de tránsito chilena.
+1. `orquestador`: coordina el flujo de trabajo.
+2. `agente_analisis`: organiza el análisis del evento.
+3. `clasificador_riesgo`: identifica el tipo de evento y su nivel de riesgo.
+4. `verificador_normativo`: consulta la normativa aplicable.
+5. `agente_registro`: envía los resultados al backend.
 
-Los resultados se envían mediante HTTP a FastAPI y se almacenan en SQLite.
+El flujo general es:
+
+Evento de tránsito → Orquestador → Análisis y clasificación → Verificación normativa → Registro en FastAPI → SQLite.
+
+Los agentes utilizan Azure AI Foundry para procesar la información y Azure AI Search para consultar dos índices:
+
+- `ks-normativa-vial-index`: normativa de tránsito chilena.
+- `ks-riesgos-viales-index`: criterios de clasificación de riesgos.
 
 ## Instalación
 
 Clonar el repositorio:
 
-```bash
+```powershell
 git clone https://github.com/JavierAbde/IA-MultiCloud.git
 cd IA-MultiCloud
 ```
@@ -47,19 +56,43 @@ python -m pip install -r requirements.txt
 
 ## Configuración
 
-Copiar `backend/.env.example` como `backend/.env`.
+Copiar los archivos de ejemplo:
 
-Copiar `monitoreo_vial/.env.example` como `monitoreo_vial/.env`.
+- `backend/.env.example` → `backend/.env`
+- `monitoreo_vial/.env.example` → `monitoreo_vial/.env`
 
-Configurar las credenciales de Azure y utilizar la misma `BACKEND_API_KEY` en ambos archivos.
+Configurar las credenciales correspondientes a Azure AI Foundry y Azure AI Search.
 
-No subir los archivos `.env` al repositorio.
+En `monitoreo_vial/.env` se requieren las variables:
+
+```env
+AZURE_API_KEY=
+AZURE_API_BASE=
+AZURE_API_VERSION=2024-10-21
+
+AZURE_SEARCH_ENDPOINT=
+AZURE_SEARCH_KEY=
+AZURE_SEARCH_INDEX_NORMATIVA=ks-normativa-vial-index
+AZURE_SEARCH_INDEX_RIESGOS=ks-riesgos-viales-index
+
+BACKEND_API_KEY=
+```
+
+En `backend/.env`:
+
+```env
+BACKEND_API_KEY=
+```
+
+La variable `BACKEND_API_KEY` debe tener el mismo valor en ambos archivos.
+
+Las credenciales y los archivos `.env` no deben publicarse en GitHub.
 
 ## Ejecución
 
 Abrir dos terminales en la carpeta principal del proyecto, con el entorno virtual activado.
 
-**Terminal 1 – FastAPI**
+### Terminal 1 – FastAPI
 
 ```powershell
 python -m uvicorn backend.main:app --reload --port 8000
@@ -69,17 +102,19 @@ Documentación interactiva:
 
 http://127.0.0.1:8000/docs
 
-**Terminal 2 – Google ADK**
+### Terminal 2 – Google ADK
 
 ```powershell
 adk web --port 8001
 ```
 
-Interfaz de agentes:
+Interfaz web:
 
 http://127.0.0.1:8001
 
-Seleccionar `monitoreo_vial` para probar el sistema.
+Seleccionar `monitoreo_vial` para interactuar con el sistema.
+
+El backend debe permanecer ejecutándose para que los agentes puedan registrar eventos.
 
 ## API
 
@@ -88,32 +123,86 @@ Seleccionar `monitoreo_vial` para probar el sistema.
 | POST | `/eventos` | Registra un evento. Requiere `X-API-Key`. |
 | GET | `/eventos` | Consulta los eventos almacenados. |
 
-El sistema utiliza validaciones con Pydantic y rechaza los identificadores duplicados.
+Se utilizan validaciones con Pydantic para comprobar los datos recibidos.
+
+La API también maneja identificadores duplicados, errores de SQLite y solicitudes no autorizadas.
 
 ## Pruebas automáticas
 
-Ejecutar:
+Para ejecutar las pruebas:
 
 ```powershell
 python -m pytest tests/test_backend.py -v
 ```
 
-Se incluyen pruebas para:
+El sistema cuenta con siete pruebas automatizadas que comprueban:
 
 - Errores de SQLite.
 - Advertencias por operaciones lentas.
-- Timeouts de comunicación entre el agente y la API.
+- Timeouts de comunicación.
+- Protección mediante API Key.
+- Identificadores duplicados.
+- Validación de datos incorrectos.
+- Manejo de errores HTTP desde los agentes.
+
+**Última comprobación:** 7 pruebas aprobadas.
 
 ## Logs y monitoreo
 
-Los registros del backend se almacenan en `backend/backend.log`.
+### Backend
 
-Se registran operaciones exitosas, errores de SQLite y advertencias cuando una operación supera los 100 ms.
+Los registros se almacenan en:
 
-Los archivos de logs, las bases de datos locales y las credenciales están excluidos de Git mediante `.gitignore`.
+`backend/backend.log`
+
+Incluyen operaciones exitosas, errores de SQLite y advertencias cuando una operación supera los 100 ms.
+
+### Agentes
+
+Los registros de ejecución se almacenan en:
+
+`monitoreo_vial/agentes.log`
+
+Se implementaron callbacks para registrar:
+
+- Inicio de cada agente.
+- Tiempo individual de ejecución.
+- Finalización de cada agente.
+- Advertencias por ejecuciones superiores a 30 segundos.
+- Errores del modelo y de herramientas.
+
+El monitoreo permite observar el comportamiento de los cinco agentes e identificar posibles problemas durante su ejecución.
+
+## Evaluación con Golden Set
+
+Se utilizó un Golden Set de 303 casos de tránsito con respuestas esperadas conocidas.
+
+Los resultados generados por los agentes se compararon con las respuestas esperadas para evaluar la clasificación del tipo de evento y del nivel de riesgo.
+
+Se realizaron tres corridas de evaluación.
+
+Los archivos de resultados se encuentran en:
+
+- `evaluacion/corrida_1.jsonl`
+- `evaluacion/corrida_2.jsonl`
+- `evaluacion/corrida_3.jsonl`
+- `evaluacion/resumen.json`
+
+La evaluación permite identificar aciertos, errores de clasificación y diferencias entre el riesgo esperado y el obtenido.
+
+## Seguridad
+
+El sistema incorpora:
+
+- Autenticación mediante `X-API-Key` para registrar eventos.
+- Validación de datos con Pydantic.
+- Manejo de errores HTTP y de base de datos.
+- Exclusión de credenciales, logs y bases de datos locales mediante `.gitignore`.
 
 ## Estado del proyecto
 
-Prototipo funcional con agentes conectados a una API protegida y almacenamiento persistente en SQLite.
+Prototipo funcional integrado con Google ADK, Azure AI Foundry, Azure AI Search, FastAPI y SQLite.
 
-Pendiente: evaluación con Golden Set, monitoreo completo de los agentes, análisis de costos y escalabilidad, y documentación final de arquitectura.
+Se completaron la integración de los cinco agentes, el registro persistente de eventos, el monitoreo de tiempos, las pruebas automatizadas del backend y la evaluación con Golden Set.
+
+Como posibles mejoras futuras se consideran la precisión de clasificación, una cobertura más amplia de errores y el análisis de costos y escalabilidad en entornos de producción.
