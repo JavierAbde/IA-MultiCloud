@@ -1,0 +1,92 @@
+{
+  "fecha": "2026-11-16T21:29:03",
+  "corridas": [
+    {
+      "corrida": 1,
+      "casos": 303,
+      "accuracy_tipo": 88.78,
+      "accuracy_tipo_y_riesgo": 68.65,
+      "errores_o_timeouts": 0,
+      "tiempo_promedio_s": 23.42,
+      "accuracy_por_tipo": {
+        "CASCO": 95.8,
+        "CELULAR": 88.9,
+        "INDETERMINADO": 100.0,
+        "NINGUNO": 92.9,
+        "VELOCIDAD": 95.6,
+        "VEREDA": 57.8
+      },
+      "accuracy_por_categoria": {
+        "dificil": 77.8,
+        "facil": 88.7,
+        "indeterminado": 100.0
+      },
+      "confusiones": {
+        "VEREDA -> INDETERMINADO": 19,
+        "NINGUNO -> INDETERMINADO": 6,
+        "CELULAR -> INDETERMINADO": 5,
+        "VELOCIDAD -> INDETERMINADO": 2,
+        "CASCO -> NINGUNO": 1,
+        "CASCO -> INDETERMINADO": 1
+      }
+    },
+    {
+      "corrida": 2,
+      "casos": 303,
+      "accuracy_tipo": 88.12,
+      "accuracy_tipo_y_riesgo": 68.98,
+      "errores_o_timeouts": 0,
+      "tiempo_promedio_s": 23.91,
+      "accuracy_por_tipo": {
+        "CASCO": 95.8,
+        "CELULAR": 95.6,
+        "INDETERMINADO": 100.0,
+        "NINGUNO": 92.9,
+        "VELOCIDAD": 93.3,
+        "VEREDA": 48.9
+      },
+      "accuracy_por_categoria": {
+        "dificil": 77.8,
+        "facil": 87.9,
+        "indeterminado": 100.0
+      },
+      "confusiones": {
+        "VEREDA -> INDETERMINADO": 23,
+        "NINGUNO -> INDETERMINADO": 6,
+        "VELOCIDAD -> INDETERMINADO": 3,
+        "CELULAR -> INDETERMINADO": 2,
+        "CASCO -> INDETERMINADO": 1,
+        "CASCO -> NINGUNO": 1
+      }
+    },
+    {
+      "corrida": 3,
+      "casos": 303,
+      "accuracy_tipo": 89.77,
+      "accuracy_tipo_y_riesgo": 69.31,
+      "errores_o_timeouts": 0,
+      "tiempo_promedio_s": 23.77,
+      "accuracy_por_tipo": {
+        "CASCO": 95.8,
+        "CELULAR": 95.6,
+        "INDETERMINADO": 100.0,
+        "NINGUNO": 91.7,
+        "VELOCIDAD": 95.6,
+        "VEREDA": 60.0
+      },
+      "accuracy_por_categoria": {
+        "dificil": 75.0,
+        "facil": 90.5,
+        "indeterminado": 100.0
+      },
+      "confusiones": {
+        "VEREDA -> INDETERMINADO": 18,
+        "NINGUNO -> INDETERMINADO": 6,
+        "VELOCIDAD -> INDETERMINADO": 2,
+        "CASCO -> INDETERMINADO": 2,
+        "CELULAR -> INDETERMINADO": 2,
+        "NINGUNO -> VELOCIDAD": 1
+      }
+    }
+  ]
+}
