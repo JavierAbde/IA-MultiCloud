@@ -3,9 +3,14 @@ import os
 from google.adk.agents import Agent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.agent_tool import AgentTool
-
+from .monitoreo import antes_agente, despues_agente
 from .buscador import buscar_criterios_riesgo, buscar_normativa
-
+from .monitoreo import (
+    antes_agente,
+    despues_agente,
+    error_modelo,
+    error_herramienta,
+)
 # Modelo de Azure Foundry que usan todos los agentes
 MODELO = LiteLlm(model="azure/gpt-6.1-terra")
 
@@ -17,6 +22,10 @@ MODELO = LiteLlm(model="azure/gpt-6.1-terra")
 clasificador_riesgo = Agent(
     name="clasificador_riesgo",
     model=MODELO,
+    before_agent_callback=antes_agente,
+    after_agent_callback=despues_agente,
+    on_model_error_callback=error_modelo,
+    on_tool_error_callback=error_herramienta,
     description="Clasifica el tipo de evento vial y su nivel de riesgo.",
     instruction="""Recibes la descripcion de un evento de transito.
 
@@ -44,13 +53,25 @@ Asigna un nivel de riesgo: bajo, medio o alto.
 Si el tipo es INDETERMINADO, no asignes riesgo e indica que requiere revision humana.
 Si la busqueda falla o no trae resultados, clasifica igual con tu criterio
 e indicalo en la justificacion.
-Responde solo con: tipo, riesgo y una justificacion breve.""",
+Responde solo con: tipo, riesgo y una justificacion breve.
+REGLA ESPECIAL PARA CELULAR:
+- Si el conductor utiliza, manipula, mira o sostiene un telefono
+  celular mientras conduce, clasifica como CELULAR.
+- Si la descripcion indica explicitamente que manipula el celular,
+  no clasifiques como INDETERMINADO.
+- Si solo se menciona una llamada por manos libres, evalua el
+  contexto antes de determinar si existe infraccion.
+- Consulta los criterios de riesgo y la normativa correspondiente.""",
     tools=[buscar_criterios_riesgo],
 )
 
 verificador_normativo = Agent(
     name="verificador_normativo",
     model=MODELO,
+    before_agent_callback=antes_agente,
+    after_agent_callback=despues_agente,
+    on_model_error_callback=error_modelo,
+    on_tool_error_callback=error_herramienta,
     description="Indica que norma de transito chilena se infringe segun el tipo de evento.",
     instruction="""Recibes un tipo de evento vial (CASCO, CELULAR, VEREDA o VELOCIDAD)
 y su descripcion.
@@ -74,6 +95,10 @@ Responde de forma breve.""",
 agente_analisis = Agent(
     name="agente_analisis",
     model=MODELO,
+    before_agent_callback=antes_agente,
+    after_agent_callback=despues_agente,
+    on_model_error_callback=error_modelo,
+    on_tool_error_callback=error_herramienta,
     description="Analiza un evento vial: clasifica su riesgo y verifica la normativa.",
     instruction="""Recibes un evento vial. Sigue siempre estos pasos:
 1. Usa la herramienta clasificador_riesgo con la descripcion completa del evento.
@@ -147,6 +172,10 @@ def guardar_evento(id_evento: str, tipo: str, riesgo: str, infraccion: str) -> d
 agente_registro = Agent(
     name="agente_registro",
     model=MODELO,
+    on_model_error_callback=error_modelo,
+    on_tool_error_callback=error_herramienta,
+    before_agent_callback=antes_agente,
+    after_agent_callback=despues_agente,
     description="Guarda en la base de datos los eventos viales ya analizados.",
     instruction="""Recibes el resultado del analisis de un evento vial.
 Usa la herramienta guardar_evento con el id, tipo, riesgo e infraccion.
@@ -162,6 +191,10 @@ Si no hay id, usa "SIN-ID". Luego confirma si el evento se guardo.""",
 root_agent = Agent(
     name="orquestador",
     model=MODELO,
+    on_model_error_callback=error_modelo,
+    on_tool_error_callback=error_herramienta,
+    before_agent_callback=antes_agente,
+    after_agent_callback=despues_agente,
     description="Agente principal del sistema de monitoreo vial.",
     instruction="""Eres el orquestador de un sistema de monitoreo vial en Chile.
 Cuando el usuario envie un evento (en texto o en JSON):
