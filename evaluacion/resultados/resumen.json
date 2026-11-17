@@ -1,0 +1,27 @@
+{
+  "fecha": "2026-11-16T21:23:51",
+  "corridas": [
+    {
+      "corrida": 1,
+      "casos": 10,
+      "accuracy_tipo": 80.0,
+      "accuracy_tipo_y_riesgo": 60.0,
+      "errores_o_timeouts": 0,
+      "tiempo_promedio_s": 31.5,
+      "accuracy_por_tipo": {
+        "CASCO": 100.0,
+        "CELULAR": 100.0,
+        "NINGUNO": 100.0,
+        "VELOCIDAD": 100.0,
+        "VEREDA": 33.3
+      },
+      "accuracy_por_categoria": {
+        "dificil": 100.0,
+        "facil": 75.0
+      },
+      "confusiones": {
+        "VEREDA -> INDETERMINADO": 2
+      }
+    }
+  ]
+}
